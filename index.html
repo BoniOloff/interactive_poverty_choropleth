@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        .chart-container {
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            overflow: visible;
+        }
+
+        h1 {
+            text-align: center;
+            padding-bottom: 65px;
+            margin: 0 auto;
+            color: #121212;
+            font-family: nyt-cheltenham,georgia,'times new roman',times,serif;
+            font-weight: 400;
+            font-style: italic;
+        }
+
+        .popup {
+            position: absolute;
+            border: 0.5px solid orange;
+            background-color: white;
+            padding: 5px;
+            opacity: 0;
+            font-size: small;
+        }
+    </style>
+    <title>Children in Poverty</title>
+</head>
+
+<body>
+    <div class="popup"></div>
+    <div class="chart-container">
+        <h1 class="headline">Number of Children in Poverty in the United States</h1>
+        <svg width="1250px" height="650px"></svg>
+    </div>
+</body>
+
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script src="https://unpkg.com/topojson@3"></script>
+<script>
+    let width = 1250;
+    let height = 650;
+    let svg = d3.select("body").select("svg");
+
+    d3.json('topojson.json').then(function (data) {
+        let counties = topojson.feature(data, data.objects.county)
+        let states = topojson.feature(data, data.objects.cb_2018_us_state_20m)
+        
+        let projection = d3.geoIdentity()
+            .fitSize([width, height], states)
+            .reflectY(true)
+        let path = d3.geoPath(projection)
+
+        svg.append('g')
+            .attr('class', 'states')
+            .selectAll('path')
+            .data(states.features)
+            .join('path')
+            .attr('d', path)
+            .attr('fill', 'white')
+            .attr('stroke', 'black')
+
+        let circles = svg.append('g')
+            .selectAll('.circles')
+            .data(counties.features.filter(d => d.geometry != null).sort((a, b) => d3.descending(a.properties.pop_18_in_poverty, b.properties.pop_18_in_poverty)))
+            .join('circle')
+            .attr('class', function (d) { return 'circles p-' + d.properties.GEOID})
+            .attr('fill', 'orange')
+            .attr('stroke', '#fff')
+            .attr('fill-opacity', 0.5)
+            .attr('opacity', 0.8)
+            .attr('stroke-width', 0.5)
+            .attr('transform', d => `translate(${projection([d.geometry.coordinates[0], d.geometry.coordinates[1]])})`)
+            .attr('r', d => Math.sqrt(d.properties.pop_18_in_poverty/200))
+            .attr('cx', d => path.centroid(d)[0])
+            .attr('cy', d => path.centroid(d)[1])
+
+        let popup = d3.select('.popup')
+
+        circles.on('mouseover', (pointer_event, d) => {
+            svg.select('.p-' + d.properties.GEOID)
+                .style('stroke-width', 0.5)
+                .style('opacity', 1)
+                .raise()
+
+            popup
+                .style('opacity', 1)
+                .style('left', pointer_event.x + 'px')
+                .style('top', pointer_event.y + 'px')
+                .html('In ' + '<b>' + d.properties.Geo_QName + '</b>, there are ' + d.properties.pop_18_in_poverty + '<b>' + ' children in poverty.')
+        })
+
+        circles.on('mouseout', (pointer_event, d) => {
+            svg.select('.p-' + d.properties.GEOID)
+                .style('stroke-width', 0.5)
+                .style('opacity', 0.8)
+                .raise()
+            
+            popup
+                .style('opacity', 0)
+        })
+    })
+</script>
