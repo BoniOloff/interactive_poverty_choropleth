@@ -52,7 +52,7 @@ let drawMap = () => {
                     return item['fips'] === id
                 })
 
-                tooltip.text(county['area_name'] +  ' : ' + county['pop_18_in_poverty'] + ' persons.')
+                tooltip.text(county['area_name'] +  ' : ' + county['pop_18_in_poverty'] + ' children.')
 
                 var x = d3.event.pageX;
                 var y = d3.event.pageY;
